@@ -1,33 +1,30 @@
-﻿using System;
+using System;
 using UnityEngine;
 using System.Reflection;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 public abstract class Pool<T>
 {
     private protected T Original;
-    private protected ConcurrentStack<T> Objects = new ConcurrentStack<T>();
+    private protected Stack<T> Objects = new Stack<T>();
+    //DOTS in the future
 
     private protected abstract T CreateObject();
 
     public T Rent()
     {
-        T result;
+        if(Objects.Count < 1)
+            return CreateObject();
 
-        if (Objects.TryPop(out result))
-            return result;
-
-        return CreateObject();
+        return Objects.Pop(); 
     }
 
     public void Return(T item) => Objects.Push(item);
-
-    public void Return(T[] items) => Objects.PushRange(items);
 }
 
-public class PoolObject : Pool<GameObject>
+public class GameObjectPool : Pool<GameObject>
 {
-    public PoolObject(GameObject original, int length)
+    public GameObjectPool(GameObject original, int length)
     {
         Original = original;
         GameObject[] collection = new GameObject[length];
@@ -35,7 +32,7 @@ public class PoolObject : Pool<GameObject>
         for (int i = 0; i < length; i++)
             collection[i] = CreateObject();
 
-        Objects = new ConcurrentStack<GameObject>(collection);
+        Objects = new Stack<GameObject>(collection);
     }
 
     private protected override GameObject CreateObject() 
@@ -43,9 +40,9 @@ public class PoolObject : Pool<GameObject>
 
 }
 
-public class PoolComponent<T> : Pool<T> where T : Component
+public class ComponentPool<T> : Pool<T> where T : Component
 {
-    public PoolComponent(T original, int length)
+    public ComponentPool(T original, int length)
     {
         Original = original;
         T[] collection = new T[length];
@@ -60,7 +57,7 @@ public class PoolComponent<T> : Pool<T> where T : Component
         for (int i = 0; i < length; i++)
             collection[i] = CreateObject();
 
-        Objects = new ConcurrentStack<T>(collection);
+        Objects = new Stack<T>(collection);
     }
 
     private Type type;
